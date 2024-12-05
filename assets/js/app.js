@@ -13,8 +13,9 @@ class App {
      * @param {*} colorPicker2Element - the second color picker HTML element
      * @param {*} previewCanvasElement - the preview canvas HTML element
      * @param {*} fileInputElement - the file input HTML element
+     * @param {*} downloadButtonElement - the download button HTML element
      */
-    constructor(colorPicker1Element, colorPicker2Element, previewCanvasElement, fileInputElement) {
+    constructor(colorPicker1Element, colorPicker2Element, previewCanvasElement, fileInputElement, downloadButtonElement) {
         this.colorPicker1 = new ColorPicker(colorPicker1Element, (value) => {
             this.rgbDark = hexToRgb(value);
             this.updateCanvas();
@@ -26,6 +27,7 @@ class App {
         this.previewCanvas = new CanvasHandler(previewCanvasElement);
         this.offscreenCanvas = new CanvasHandler(document.createElement('canvas'));
         this.fileInput = fileInputElement;
+        this.downloadButton = downloadButtonElement;
         this.rgbDark = [78, 5, 112];
         this.rgbLight = [226, 178, 3];
         this.init();
@@ -40,6 +42,9 @@ class App {
         });
         this.colorPicker1.init(rgbToHex(...this.rgbDark));
         this.colorPicker2.init(rgbToHex(...this.rgbLight));
+        this.downloadButton.addEventListener('click', () => {
+            this.saveImage();
+        });
     }
 
     /**
@@ -65,6 +70,19 @@ class App {
     updateCanvas() {    
         this.previewCanvas.applyDuotoneEffect(this.rgbDark, this.rgbLight);
     }
+
+    saveImage(format = 'image/webp') {
+        // Create a link element to download the image
+        const link = document.createElement('a');
+        // Date.now() is used to generate a unique filename, format.splt('/')[1] extracts the file extension
+        link.download = `duotone-image-${Date.now()}.${format.split('/')[1]}`;
+        // Process the image at full size on offscreen canvas
+        this.offscreenCanvas.applyDuotoneEffect(this.rgbDark, this.rgbLight);
+        // Set the href attribute of the link element to the image data URL
+        link.href = this.offscreenCanvas.canvasElement.toDataURL(format);
+        // Trigger download
+        link.click();
+    }
 }
 
 // Initialize the app
@@ -72,5 +90,6 @@ const app = new App(
     document.getElementById('color-picker-1'),
     document.getElementById('color-picker-2'),
     document.getElementById('preview-canvas'),
-    document.getElementById('file-input')
+    document.getElementById('file-input'),
+    document.getElementById('download-button')
 );
