@@ -1,12 +1,25 @@
 import {  rgbToGrayscale, mapGrayscaleToGradient } from './utilities.js';
 
+/**
+ * CanvasHandler class.
+ * This class corresponds to a canvas element in the UI, and handles image processing and rendering.
+ */
 export default class CanvasHandler {
+    /**
+     * Constructor for CanvasHandler class.
+     * @param {*} canvasElement - the canvas HTML element
+     */
     constructor(canvasElement) {
         this.canvasElement = canvasElement;
         this.ctx = canvasElement.getContext('2d');
         this.originalImageData = null;
     }
 
+    /**
+     * Prepares the canvas once it has an image ready to be displayed, scaling it if necessary.
+     * @param {*} img - the image HTML element to be displayed on the canvas 
+     * @param {number} lengthLimit - the maximum length that either the width or height of the canvas should be
+     */
     prepareCanvas(img, lengthLimit=null) {
         const { width, height } = img;
         if (lengthLimit) {
@@ -24,6 +37,11 @@ export default class CanvasHandler {
         this.originalImageData = this.ctx.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
     }
 
+    /**
+     * Applies duotone effect to the image currently displayed on the canvas, based on the provided colors.
+     * @param {number[]} rgbDark - rgb values for dark end of gradient
+     * @param {number[]} rgbLight - rgb values for light end of gradient
+     */
     applyDuotoneEffect(rgbDark, rgbLight) {
         if (this.originalImageData) {
             this.ctx.putImageData(this.originalImageData, 0, 0);
