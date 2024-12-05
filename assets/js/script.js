@@ -1,29 +1,20 @@
-
+// Elements
 const fileInput = document.getElementById('file-input');
 const previewCanvas = document.getElementById('preview-canvas');
 const previewCtx = previewCanvas.getContext('2d');
-const colorPicker1 = document.getElementById('color-picker-1');
-const colorPicker2 = document.getElementById('color-picker-2');
+const offscreenCanvas = document.createElement('canvas');
+const offscreenCtx = offscreenCanvas.getContext('2d');
+//const colorPicker1 = document.getElementById('color-picker-1');
+//const colorPicker2 = document.getElementById('color-picker-2');
 
-
-colorPicker1.addEventListener('input', (e) => {
-    console.log(e.target.value);
-});
-
-const rgbDark = [78, 5, 112];
-//const rgbLight = [255, 235, 10];
-
-// 226 178 3
-const rgbLight = [226, 178, 3];
-
-
-const rgbToHex = (r, g, b) => {
+// Utility functions
+function rgbToHex(r, g, b) {
     // (1 << 24) added to ensure that resulting number has enough bits. The resulting
     // leading 1 is then removed with slice(1) to give the correct hex value.
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-};
+}
 
-const hexToRgb = (hex) => {
+function hexToRgb(hex) {
     const bigint = parseInt(hex.substring(1), 16);
     const r = (bigint >> 16) & 255;
     const g = (bigint >> 8) & 255;
@@ -34,9 +25,9 @@ const hexToRgb = (hex) => {
 /**
  * Basic grayscale conversion - possibly enhance in future.
  */
-const rgbToGrayscale = (r, g, b) => {
+function rgbToGrayscale(r, g, b) {
     return Math.round((r + g + b) / 3);
-};
+}
 
 
 /**
@@ -45,7 +36,7 @@ const rgbToGrayscale = (r, g, b) => {
  * @param {*} rgbLight 
  * @returns array of rgb values
  */
-const mapGrayscaleToGradient = (rgbDark, rgbLight) => {
+function mapGrayscaleToGradient(rgbDark, rgbLight) {
     const gradient = [];
     for (let i = 0; i < 256; i++) {
         const r = Math.round(rgbDark[0] + ( (rgbLight[0] - rgbDark[0]) * (i / 255) ) );
@@ -54,7 +45,99 @@ const mapGrayscaleToGradient = (rgbDark, rgbLight) => {
         gradient.push([r, g, b]);
     }
     return gradient;
-};
+}
+
+
+class ColorPicker {
+    constructor(element, onChangeCallback) {
+        this.element = element;
+        this.onChangeCallback = onChangeCallback;
+        this.debounceTimeout = null;
+        this.init();
+    }
+
+    init() {
+        this.element.addEventListener('input', e => {
+            this.handleInput(e);
+        });
+    }
+
+    handleInput(e) {
+        if (this.debounceTimeout) {
+            clearTimeout(this.debounceTimeout);
+        }
+        this.debounceTimeout = setTimeout(() => {
+            this.onChangeCallback(e.target.value);
+        }, 100);
+    }
+}
+
+const colorPicker1 = new ColorPicker(document.getElementById('color-picker-1'), (value) => {
+    console.log(`Color picker 1 callback called with value: ${value}`);
+});
+
+const colorPicker2 = new ColorPicker(document.getElementById('color-picker-2'), (value) => {
+    console.log(`Color picker 2 callback called with value: ${value}`);
+});
+
+
+
+
+
+
+
+
+
+
+// colorPicker1.addEventListener('input', (e) => {
+//     console.log(e.target.value);
+// });
+
+const rgbDark = [78, 5, 112];
+//const rgbLight = [255, 235, 10];
+
+// 226 178 3
+const rgbLight = [226, 178, 3];
+
+
+function preparePreviewCanvas(img, lengthLimit) {
+    const {  width, height } = img;
+    const maxDimension = Math.max(width, height);
+    const scale = Math.min(lengthLimit / maxDimension, 1);
+    console.log(scale);
+    previewCanvas.width = width * scale;
+    previewCanvas.height = height * scale;
+    previewCtx.drawImage(img, 0, 0, width, height, 0, 0, width * scale, height * scale);
+} 
+
+function prepareOffscreenCanvas(img) {
+    offscreenCanvas.width = img.width;
+    offscreenCanvas.height = img.height;
+    offscreenCtx.drawImage(img, 0, 0);
+}
+
+
+function applyDuotoneEffect(canvas, rgbDark, rgbLight) {
+    const canvasCtx = canvas.getContext('2d');
+    const map = mapGrayscaleToGradient(rgbDark, rgbLight);
+    const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixelArray = imageData.data;
+    const start = performance.now();
+    for (let i = 0; i < pixelArray.length; i += 4) {
+        const red = pixelArray[i];
+        const green = pixelArray[i + 1];
+        const blue = pixelArray[i + 2];
+        const grayscale = rgbToGrayscale(red, green, blue);
+        const [r, g, b] = map[grayscale];
+        pixelArray[i] = r;
+        pixelArray[i + 1] = g;
+        pixelArray[i + 2] = b;
+    }
+    canvasCtx.putImageData(imageData, 0, 0);
+    const end = performance.now();
+    console.log(`Time to process all pixels: ${end - start}ms`);    
+}
+
 
 
 
@@ -68,37 +151,9 @@ fileInput.addEventListener('change', (e) => {
         const img = new Image();
         img.src = imageURL;
         img.onload = () => {
-            // todo: instead of using images natural width and height, scale so that max(width, height) is
-            // below some threshold.
-            previewCanvas.width = img.width;
-            previewCanvas.height = img.height;
-            previewCtx.drawImage(img, 0, 0);
-            // todo: add full size image into offscreen canvas, then call URL.revokeObjectURL(imageURL) to clean up
-            const map = mapGrayscaleToGradient(rgbDark, rgbLight);
-            const imageData = previewCtx.getImageData(0, 0, img.width, img.height);
-            console.log(imageData);
-            
-            const pixelArray = imageData.data;
-            // Each four elements in the pixelArray represent the RGBA values of a single pixel.
-            // So, to process one pixel at a time, we move in increments of 4, accessing the rgb values
-            // relative to the current index (red = idx, green = idx + 1, blue = idx + 2).
-            
-            const start = performance.now();
-            for (let i = 0; i < pixelArray.length; i += 4) {
-                const red = pixelArray[i];
-                const green = pixelArray[i + 1];
-                const blue = pixelArray[i + 2];
-                const grayscale = rgbToGrayscale(red, green, blue);
-                const [r, g, b] = map[grayscale];
-                pixelArray[i] = r;
-                pixelArray[i + 1] = g;
-                pixelArray[i + 2] = b;
-                //console.log([ red, green, blue ]);
-            }
-            
-            previewCtx.putImageData(imageData, 0, 0);
-            const end = performance.now();
-            console.log(`Time to process all pixels: ${end - start}ms`);
+            preparePreviewCanvas(img, 500);
+            prepareOffscreenCanvas(img);
+            applyDuotoneEffect(previewCanvas, rgbDark, rgbLight);
         };
     }
     
