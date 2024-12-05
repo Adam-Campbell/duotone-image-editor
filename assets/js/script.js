@@ -1,12 +1,3 @@
-// Elements
-const fileInput = document.getElementById('file-input');
-const previewCanvas = document.getElementById('preview-canvas');
-const previewCtx = previewCanvas.getContext('2d');
-const offscreenCanvas = document.createElement('canvas');
-const offscreenCtx = offscreenCanvas.getContext('2d');
-//const colorPicker1 = document.getElementById('color-picker-1');
-//const colorPicker2 = document.getElementById('color-picker-2');
-
 // Utility functions
 function rgbToHex(r, g, b) {
     // (1 << 24) added to ensure that resulting number has enough bits. The resulting
@@ -28,7 +19,6 @@ function hexToRgb(hex) {
 function rgbToGrayscale(r, g, b) {
     return Math.round((r + g + b) / 3);
 }
-
 
 /**
  * Creates a map of grayscale values to a gradient between two colors.
@@ -56,7 +46,8 @@ class ColorPicker {
         this.init();
     }
 
-    init() {
+    init(initialValue='#000000') {
+        this.element.value = initialValue;
         this.element.addEventListener('input', e => {
             this.handleInput(e);
         });
@@ -72,92 +63,105 @@ class ColorPicker {
     }
 }
 
-const colorPicker1 = new ColorPicker(document.getElementById('color-picker-1'), (value) => {
-    console.log(`Color picker 1 callback called with value: ${value}`);
-});
 
-const colorPicker2 = new ColorPicker(document.getElementById('color-picker-2'), (value) => {
-    console.log(`Color picker 2 callback called with value: ${value}`);
-});
+class CanvasHandler {
+    constructor(canvasElement) {
+        this.canvasElement = canvasElement;
+        this.ctx = canvasElement.getContext('2d');
+        this.originalImageData = null;
+    }
 
+    prepareCanvas(img, lengthLimit=null) {
+        const { width, height } = img;
+        if (lengthLimit) {
+            const maxDimension = Math.max(width, height);
+            const scale = Math.min(lengthLimit / maxDimension, 1);
+            this.canvasElement.width = width * scale;
+            this.canvasElement.height = height * scale;
+            this.ctx.drawImage(img, 0, 0, width, height, 0, 0, width * scale, height * scale);
+        } else {
+            this.canvasElement.width = width;
+            this.canvasElement.height = height;
+            this.ctx.drawImage(img, 0, 0);
+        }
+        this.ctx.drawImage(img, 0, 0, this.canvasElement.width, this.canvasElement.height);
+        this.originalImageData = this.ctx.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
+    }
 
-
-
-
-
-
-
-
-
-// colorPicker1.addEventListener('input', (e) => {
-//     console.log(e.target.value);
-// });
-
-const rgbDark = [78, 5, 112];
-//const rgbLight = [255, 235, 10];
-
-// 226 178 3
-const rgbLight = [226, 178, 3];
-
-
-function preparePreviewCanvas(img, lengthLimit) {
-    const {  width, height } = img;
-    const maxDimension = Math.max(width, height);
-    const scale = Math.min(lengthLimit / maxDimension, 1);
-    console.log(scale);
-    previewCanvas.width = width * scale;
-    previewCanvas.height = height * scale;
-    previewCtx.drawImage(img, 0, 0, width, height, 0, 0, width * scale, height * scale);
-} 
-
-function prepareOffscreenCanvas(img) {
-    offscreenCanvas.width = img.width;
-    offscreenCanvas.height = img.height;
-    offscreenCtx.drawImage(img, 0, 0);
+    applyDuotoneEffect(rgbDark, rgbLight) {
+        if (this.originalImageData) {
+            this.ctx.putImageData(this.originalImageData, 0, 0);
+        }
+        const map = mapGrayscaleToGradient(rgbDark, rgbLight);
+        const imageData = this.ctx.getImageData(0, 0, this.canvasElement.width, this.canvasElement.height);
+        const pixelArray = imageData.data;
+        const start = performance.now();
+        for (let i = 0; i < pixelArray.length; i += 4) {
+            const red = pixelArray[i];
+            const green = pixelArray[i + 1];
+            const blue = pixelArray[i + 2];
+            const grayscale = rgbToGrayscale(red, green, blue);
+            const [r, g, b] = map[grayscale];
+            pixelArray[i] = r;
+            pixelArray[i + 1] = g;
+            pixelArray[i + 2] = b;
+        }
+        this.ctx.putImageData(imageData, 0, 0);
+        const end = performance.now();
+        console.log(`Time to process all pixels: ${end - start}ms`);
+    }
 }
 
 
-function applyDuotoneEffect(canvas, rgbDark, rgbLight) {
-    const canvasCtx = canvas.getContext('2d');
-    const map = mapGrayscaleToGradient(rgbDark, rgbLight);
-    const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixelArray = imageData.data;
-    const start = performance.now();
-    for (let i = 0; i < pixelArray.length; i += 4) {
-        const red = pixelArray[i];
-        const green = pixelArray[i + 1];
-        const blue = pixelArray[i + 2];
-        const grayscale = rgbToGrayscale(red, green, blue);
-        const [r, g, b] = map[grayscale];
-        pixelArray[i] = r;
-        pixelArray[i + 1] = g;
-        pixelArray[i + 2] = b;
+class App {
+    constructor(colorPicker1Element, colorPicker2Element, previewCanvasElement, fileInputElement) {
+        this.colorPicker1 = new ColorPicker(colorPicker1Element, (value) => {
+            this.rgbDark = hexToRgb(value);
+            this.updateCanvas();
+        });
+        this.colorPicker2 = new ColorPicker(colorPicker2Element, (value) => {
+            this.rgbLight = hexToRgb(value);
+            this.updateCanvas();
+        });
+        this.previewCanvas = new CanvasHandler(previewCanvasElement);
+        this.offscreenCanvas = new CanvasHandler(document.createElement('canvas'));
+        this.fileInput = fileInputElement;
+        this.rgbDark = [78, 5, 112];
+        this.rgbLight = [226, 178, 3];
+        this.init();
     }
-    canvasCtx.putImageData(imageData, 0, 0);
-    const end = performance.now();
-    console.log(`Time to process all pixels: ${end - start}ms`);    
+
+    init() {
+        this.fileInput.addEventListener('change', (e) => {
+            this.handleFileUpload(e);
+        });
+        this.colorPicker1.init(rgbToHex(...this.rgbDark));
+        this.colorPicker2.init(rgbToHex(...this.rgbLight));
+    }
+
+    handleFileUpload(e) {
+        const imageFile = e.target.files[0];
+        if (imageFile) {
+            const imageURL = URL.createObjectURL(imageFile);
+            const img = new Image();
+            img.src = imageURL;
+            img.onload = () => {
+                this.previewCanvas.prepareCanvas(img, 500);
+                this.offscreenCanvas.prepareCanvas(img);
+            };
+        }
+    }
+
+    updateCanvas() {    
+        this.previewCanvas.applyDuotoneEffect(this.rgbDark, this.rgbLight);
+    }
 }
 
-
-
-
-
-// When the user uploads an image, display it on the canvas
-fileInput.addEventListener('change', (e) => {
-    // Grab the first File object from FileList
-    const imageFile = e.target.files[0];
-    if (imageFile) {
-        const imageURL = URL.createObjectURL(imageFile);
-        const img = new Image();
-        img.src = imageURL;
-        img.onload = () => {
-            preparePreviewCanvas(img, 500);
-            prepareOffscreenCanvas(img);
-            applyDuotoneEffect(previewCanvas, rgbDark, rgbLight);
-        };
-    }
-    
- });
-
+const app = new App(
+    document.getElementById('color-picker-1'),
+    document.getElementById('color-picker-2'),
+    document.getElementById('preview-canvas'),
+    document.getElementById('file-input')
+);
 
 
