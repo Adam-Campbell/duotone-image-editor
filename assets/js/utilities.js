@@ -51,3 +51,26 @@ export function mapGrayscaleToGradient(rgbDark, rgbLight) {
     }
     return gradient;
 }
+
+export const colorPresets = [
+    { name: "Sunset Glow", darker: [88, 24, 69], lighter: [255, 176, 59] },
+    { name: "Ocean Wave", darker: [0, 48, 73], lighter: [137, 196, 244] },
+    { name: "Midnight", darker: [12, 12, 48], lighter: [102, 126, 234] },
+    { name: "Forest Retreat", darker: [25, 51, 33], lighter: [152, 203, 137] },
+    { name: "Autumn Blaze", darker: [97, 37, 21], lighter: [255, 122, 89] },
+    { name: "Candyfloss", darker: [73, 24, 104], lighter: [255, 153, 240] },
+    { name: "Retro Vibe", darker: [48, 33, 33], lighter: [255, 209, 102] },
+    { name: "Citrus Punch", darker: [55, 41, 7], lighter: [247, 183, 51] },
+    { name: "Icy Blue", darker: [15, 48, 87], lighter: [180, 228, 255] },
+    { name: "Crimson Rose", darker: [79, 14, 14], lighter: [255, 102, 102] },
+    { name: "Golden Hour", darker: [61, 40, 1], lighter: [255, 204, 112] },
+    { name: "Lavender Dreams", darker: [47, 36, 74], lighter: [203, 153, 255] },
+    { name: "Tropical Paradise", darker: [7, 48, 46], lighter: [122, 237, 201] },
+    { name: "Frosted Berry", darker: [63, 14, 34], lighter: [255, 153, 204] },
+    { name: "Smoky Charcoal", darker: [33, 33, 33], lighter: [200, 200, 200] },
+    { name: "Sunrise Sky", darker: [73, 0, 106], lighter: [255, 200, 124] },
+    { name: "Electric Neon", darker: [10, 10, 55], lighter: [102, 255, 102] },
+    { name: "Peach Sorbet", darker: [112, 28, 60], lighter: [255, 177, 153] },
+    { name: "Velvet Night", darker: [14, 0, 38], lighter: [131, 77, 232] },
+    { name: "Golden Forest", darker: [35, 30, 13], lighter: [184, 198, 115] }
+];

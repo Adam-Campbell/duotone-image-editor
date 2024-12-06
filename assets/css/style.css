@@ -11,3 +11,65 @@ body {
 
 
 
+/*****************************
+  Color presets modal styles
+*****************************/
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-container {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: calc(100% - 2rem);
+    max-height: calc(100% - 2rem);
+    overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+    .modal-container {
+        width: 600px;
+    }
+}
+
+.presets-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.preset {
+    min-width: 120px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: solid red 1px;
+}
+
+.preset-gradient {
+    width: 100%;
+    height: 50px;
+    border-radius: 5px;
+}
+
+.preset p {
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+
